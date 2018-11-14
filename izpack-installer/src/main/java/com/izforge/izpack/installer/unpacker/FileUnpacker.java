@@ -172,7 +172,7 @@ public abstract class FileUnpacker
                 String pathToLink = target.substring(0, target.length() - ((String) additionals.get("entryName")).length());
                 execCommands.add("ln -fv " + pathToLink + additionals.get("linkName") + " " + target);
             }
-            execCommands.add("chmod " + additionals.get("unixMode") + " " + target);
+            if (!(Boolean) additionals.get("isSymbolicLink")) execCommands.add("chmod " + additionals.get("unixMode") + " " + target);
         }
         else if (isWindows) {
             if ((Boolean) additionals.get("isSymbolicLink")) {
