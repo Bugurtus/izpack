@@ -603,37 +603,34 @@ public abstract class UnpackerBase implements IUnpacker
         // Add path to the log
         getUninstallData().addFile(path, pack.isUninstall());
 
-        if (packFile.isDirectory())
+        if (!packFile.isDirectory())
         {
-            if (packFile.getAdditionals() != null) {
-                // when targetPath come from arch entry it end with "/" but packFile.getTargetPath() return it value without it
-                HashMap<String, Object> filePropertiesMap = (HashMap<String, Object>) packFile.getAdditionals().get(targetPath + "/");
-                if (filePropertiesMap != null) setAdditionalData(target.getPath(), filePropertiesMap);
-            }
-            return;
-        }
+            listeners.beforeFile(target, packFile, pack);
 
-        listeners.beforeFile(target, packFile, pack);
+            listener.progress(fileNo, path);
 
-        listener.progress(fileNo, path);
-
-        // if this file exists and should not be overwritten, check what to do
-        if (target.exists() && (packFile.override() != OverrideType.OVERRIDE_TRUE) && !isOverwriteFile(packFile, target))
-        {
-            if (!packFile.isBackReference() && !pack.isLoose() && !packFile.isPack200Jar())
+            // if this file exists and should not be overwritten, check what to do
+            if (target.exists() && (packFile.override() != OverrideType.OVERRIDE_TRUE) && !isOverwriteFile(packFile, target))
             {
-                long size = packFile.size();
-                logger.fine("|- No overwrite - skipping pack stream by " + size + " bytes");
-                skip(packInputStream, size);
+                if (!packFile.isBackReference() && !pack.isLoose() && !packFile.isPack200Jar())
+                {
+                    long size = packFile.size();
+                    logger.fine("|- No overwrite - skipping pack stream by " + size + " bytes");
+                    skip(packInputStream, size);
+                }
+                return;
+            } else
+            {
+                handleOverrideRename(packFile, target);
+                extract(packFile, target, packInputStream, pack, queue);
             }
-        } else
-        {
-            handleOverrideRename(packFile, target);
-            extract(packFile, target, packInputStream, pack, queue);
-            if (packFile.getAdditionals() != null) {
-                HashMap<String, Object> filePropertiesMap = (HashMap<String, Object>) packFile.getAdditionals().get(targetPath);
-                if (filePropertiesMap != null) setAdditionalData(target.getPath(), filePropertiesMap);
-            }
+        }
+        if (packFile.getAdditionals() != null) {
+            // when targetPath come from arch entry it end with "/" but packFile.getTargetPath() return it value without it
+            String targetArchPath = packFile.getTargetPath();
+            if (packFile.isDirectory()) targetArchPath += "/";
+            HashMap<String, Object> filePropertiesMap = (HashMap<String, Object>) packFile.getAdditionals().get(targetArchPath);
+            if (filePropertiesMap != null) setAdditionalData(target.getPath(), filePropertiesMap);
         }
     }
 
