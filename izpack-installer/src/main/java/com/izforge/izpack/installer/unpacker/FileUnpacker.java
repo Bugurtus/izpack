@@ -152,50 +152,6 @@ public abstract class FileUnpacker
     }
 
     /**
-     * Sets the file permissions and type in accordance with the initial values.
-     * MacOS not supported yet.
-     *
-     * @param target      the full path to file
-     * @param additionals the collection which contains full information about current file
-     */
-    private void setAdditionalData(String target, HashMap<String, Object> additionals)
-    {
-        boolean isLinux = System.getProperty("os.name").toLowerCase().contains("linux");
-        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("windows");
-
-        ArrayList<String> execCommands = new ArrayList<String>();
-
-        if (isLinux) {
-            if ((Boolean) additionals.get("isSymbolicLink")) {
-                execCommands.add("ln -sf " + additionals.get("linkName") + " " + target);
-            } else if ((Boolean) additionals.get("isLink")) {
-                String pathToLink = target.substring(0, target.length() - ((String) additionals.get("entryName")).length());
-                execCommands.add("ln -fv " + pathToLink + additionals.get("linkName") + " " + target);
-            }
-            if (!(Boolean) additionals.get("isSymbolicLink")) execCommands.add("chmod " + additionals.get("unixMode") + " " + target);
-        }
-        else if (isWindows) {
-            if ((Boolean) additionals.get("isSymbolicLink")) {
-                execCommands.add("cmd.exe /c del " + target);
-                execCommands.add("cmd.exe /c mklink " + target + " " + ((String) additionals.get("linkName")).replace('/', '\\'));
-            } else if ((Boolean) additionals.get("isLink")) {
-                execCommands.add("cmd.exe /c del " + target);
-                String pathToLink = target.substring(0, target.length() - ((String) additionals.get("entryName")).length());
-                execCommands.add("cmd.exe /c mklink /H " + target + " " + pathToLink + ((String) additionals.get("linkName")).replace('/', '\\'));
-            }
-        }
-
-        for (String command : execCommands) {
-            try {
-                Process pr = Runtime.getRuntime().exec(command);
-                pr.waitFor();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    /**
      * Invoked after copying is complete to set the last modified timestamp, and queue blockable files.
      * If there are saved file permissions, then restore them,
      *
@@ -208,11 +164,6 @@ public abstract class FileUnpacker
         if (isBlockable(file))
         {
             queue();
-        }
-
-        if (file.getAdditionals() != null) {
-            HashMap<String, Object> filePropertiesMap = (HashMap<String, Object>) file.getAdditionals().get(file.getTargetPath());
-            if (filePropertiesMap != null) setAdditionalData(target.getPath(), filePropertiesMap);
         }
     }
 
