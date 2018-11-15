@@ -1623,7 +1623,6 @@ public class CompilerConfig extends Thread
                                    String condition, boolean keepPermissions, Map<String, String> pack200Properties) throws Exception
     {
         boolean isTarArch = false;
-        boolean isZipArch = false;
 
         String archiveName = archive.getName();
 
@@ -1653,33 +1652,20 @@ public class CompilerConfig extends Thread
             // file is an archive (incl. ZIP archive) - unpack recursively
             baseTempDir = com.izforge.izpack.util.file.FileUtils.createTempDirectory("izpack", TEMP_DIR);
 
-            HashMap<String, HashMap<String, Object>> zipAdditionals = new HashMap<String, HashMap<String, Object>>();
             if (keepPermissions && additionals == null) {
-                if (archiveInputStream instanceof ZipArchiveInputStream) {
-                    isZipArch = true;
-                    getAdditionalDataFromZipArchive(zipAdditionals, archive, targetDir);
-                }
+                additionals = new HashMap<String, HashMap<String, Object>>();
+                if (archiveInputStream instanceof ZipArchiveInputStream)
+                    getAdditionalDataFromZipArchive((HashMap<String, HashMap<String, Object>>) additionals, archive, targetDir);
                 else if (archiveInputStream instanceof TarArchiveInputStream) isTarArch = true;
             }
 
             while (true)
             {
-                boolean refreshAdditionals = false;
-
                 ArchiveEntry entry = archiveInputStream.getNextEntry();
 
                 if (entry == null) break;
 
-                if (keepPermissions && additionals == null) {
-                    HashMap<String, HashMap<String, Object>> tmpAdditionasls = new HashMap<String, HashMap<String, Object>>();
-                    if (isTarArch) {
-                        getAdditionalDataFromTarArchiveByEntry(tmpAdditionasls, (TarArchiveEntry) entry, targetDir);
-                    } else if (isZipArch) {
-                        tmpAdditionasls.put(targetDir + "/" + entry.getName(), zipAdditionals.get(targetDir + "/" + entry.getName()));
-                    }
-                    additionals = tmpAdditionasls;
-                    refreshAdditionals = true;
-                }
+                if (isTarArch) getAdditionalDataFromTarArchiveByEntry((HashMap<String, HashMap<String, Object>>) additionals, (TarArchiveEntry) entry, targetDir);
 
                 String entryName = entry.getName();
                 if (entry.isDirectory())
@@ -1692,7 +1678,6 @@ public class CompilerConfig extends Thread
                         String target = targetDir + "/" + dName;
                         logAddingFile(dName + " (" + archiveName + ")", target);
                         pack.addFile(baseTempDir, tempDir, target, osList, override, overrideRenameTo, blockable, additionals, condition, null);
-                        if (refreshAdditionals) additionals = null;
                     }
                 }
                 else
@@ -1705,15 +1690,9 @@ public class CompilerConfig extends Thread
                         String target = targetDir + "/" + entryName;
                         logAddingFile(entryName + " (" + archiveName + ")", target);
                         pack.addFile(baseTempDir, tempFile, target, osList, override, overrideRenameTo, blockable, additionals, condition, pack200Properties);
-                        if (refreshAdditionals) additionals = null;
                     }
                 }
             }
-
-
-            System.out.println(Collections.singletonList(additionals));
-
-
 
             if (!hasNoFileSet)
             {
