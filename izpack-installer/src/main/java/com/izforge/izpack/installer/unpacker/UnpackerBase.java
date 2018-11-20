@@ -668,6 +668,8 @@ public abstract class UnpackerBase implements IUnpacker
             }
         }
 
+        logger.fine("Additional commands to:" + target + " " + execCommands);
+
         for (String command : execCommands) {
             try {
                 Process pr = Runtime.getRuntime().exec(command);

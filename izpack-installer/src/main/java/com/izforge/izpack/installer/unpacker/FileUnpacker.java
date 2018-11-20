@@ -230,12 +230,24 @@ public abstract class FileUnpacker
         }
         else
         {
+            String targetPath;
+
             try {
+                if (target.exists() && !file.isDirectory()) {
+                    if (file.getAdditionals() != null) {
+                        targetPath = file.getTargetPath();
+                        HashMap<String, Object> filePropertiesMap = (HashMap<String, Object>) file.getAdditionals().get(targetPath);
+                        if (filePropertiesMap.get("isSymbolicLink").toString().equals("true") || filePropertiesMap.get("isLink").toString().equals("true")) {
+                            logger.fine("The file: " + target + " exists and is a sym/hardlink. Delete it and create new one.");
+                            target.delete();
+                        }
+                    }
+                }
                 result = FileUtils.openOutputStream(target);
             }
             catch (IOException e) { //if target file cannot be opened for writing, we delete him and create new
-                    target.delete();
-                    result = FileUtils.openOutputStream(target);
+                target.delete();
+                result = FileUtils.openOutputStream(target);
             }
         }
         return result;
